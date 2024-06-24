@@ -2,6 +2,12 @@
 Changelog for package tracetools_test
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+6.0.0 (2023-04-12)
+------------------
+
+5.1.0 (2023-03-02)
+------------------
+
 4.1.0 (2022-03-29)
 ------------------
 * Allow providing additional actions for TraceTestCase

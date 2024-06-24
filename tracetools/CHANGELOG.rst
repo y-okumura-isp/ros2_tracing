@@ -2,6 +2,26 @@
 Changelog for package tracetools
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+6.0.0 (2023-04-12)
+------------------
+* Improve tracetools rosdoc2/doxygen output (`#57 <https://github.com/ros2/ros2_tracing/issues/57>`_)
+* Update README and other documentation (`#55 <https://github.com/ros2/ros2_tracing/issues/55>`_)
+* Disable tracing on macOS (`#53 <https://github.com/ros2/ros2_tracing/issues/53>`_)
+* Include tracepoints by default on Linux (`#31 <https://github.com/ros2/ros2_tracing/issues/31>`_)
+* Contributors: Christophe Bedard
+
+5.1.0 (2023-03-02)
+------------------
+* Explicitly link against dl for dladdr() (`#48 <https://github.com/ros2/ros2_tracing/issues/48>`_)
+* Fix memory leak in tracetools::get_symbol() (`#43 <https://github.com/ros2/ros2_tracing/issues/43>`_)
+* Add TRACEPOINT_ENABLED() and DO_TRACEPOINT() macros (`#46 <https://github.com/ros2/ros2_tracing/issues/46>`_)
+* Contributors: Christophe Bedard
+
+5.0.0 (2023-02-14)
+------------------
+* Update tracing to C++17. (`#33 <https://github.com/ros2/ros2_tracing/issues/33>`_)
+* Contributors: Chris Lalancette
+
 4.1.0 (2022-03-29)
 ------------------
 * Install headers to include/${PROJECT_NAME}

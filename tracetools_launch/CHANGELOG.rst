@@ -2,6 +2,19 @@
 Changelog for package tracetools_launch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+6.0.0 (2023-04-12)
+------------------
+* Enable document generation using rosdoc2 for ament_python pkgs (`#50 <https://github.com/ros2/ros2_tracing/issues/50>`_)
+* Contributors: Yadu
+
+5.1.0 (2023-03-02)
+------------------
+
+5.0.0 (2023-02-14)
+------------------
+* Remove deprecated context_names parameter (`#38 <https://github.com/ros2/ros2_tracing/issues/38>`_)
+* Contributors: Christophe Bedard
+
 4.0.0 (2022-01-20)
 ------------------
 * Disable kernel tracing by default

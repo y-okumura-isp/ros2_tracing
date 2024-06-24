@@ -44,63 +44,68 @@ Reference:
 
 ## Tutorials & demos
 
+* ROS 2 documentation: [Building ROS 2 with tracing](https://docs.ros.org/en/rolling/How-To-Guides/Building-ROS-2-with-Tracing.html)
 * Real-Time Working Group documentation tutorial: [How to use `ros2_tracing` to trace and analyze an application](https://ros-realtime.github.io/Guides/ros2_tracing_trace_and_analyze.html)
 * ROS World 2021 demo: [github.com/christophebedard/ros-world-2021-demo](https://github.com/christophebedard/ros-world-2021-demo)
 
 ## Building
 
-As of Foxy, these instructions also apply to an installation from the Debian packages; it will not work out-of-the-box.
+As of Iron, the LTTng tracer is a ROS 2 dependency.
+Therefore, ROS 2 can be traced out-of-the-box on Linux; this package does not need to be re-built.
 
-If LTTng is not found during build, or if the [`TRACETOOLS_DISABLED` option is enabled](#disabling-tracing), then this package will not do anything.
-
-To enable tracing:
-
-1. Install [LTTng](https://lttng.org/docs/v2.13/) (`>=2.11.1`) with the Python bindings to control tracing and read traces:
-    ```
-    $ sudo apt-get update
-    $ sudo apt-get install lttng-tools liblttng-ust-dev
-    $ sudo apt-get install python3-babeltrace python3-lttng
-    ```
-    * The above commands will only install the LTTng userspace tracer, LTTng-UST. You only need the userspace tracer to trace ROS 2.
-    * To install the [LTTng kernel tracer](https://lttng.org/docs/v2.13/#doc-tracing-the-linux-kernel):
-        ```
-        $ sudo apt-get install lttng-modules-dkms
-        ```
-    * For more information about LTTng, [see its documentation](https://lttng.org/docs/v2.13/).
-2. Build:
-    *  If you've already built ROS 2 from source before installing LTTng, you will need to re-build at least up to `tracetools`:
-        ```
-        $ colcon build --packages-up-to tracetools --cmake-force-configure
-        ```
-    * If you rely on the ROS 2 binaries (Debian packages, release binaries, or prerelease binaries), you will need to clone this repo into your workspace and build at least up to `tracetools`:
-        ```
-        $ cd src/
-        $ git clone https://github.com/ros2/ros2_tracing.git
-        $ cd ../
-        $ colcon build --packages-up-to tracetools
-        ```
-3. Source and check that tracing is enabled:
-    ```
-    $ source ./install/setup.bash
-    $ ros2 run tracetools status
-    Tracing enabled
-    ```
-
-### Disabling tracing
-
-Alternatively, to build and disable tracing, use `TRACETOOLS_DISABLED`:
+To make sure that the instrumentation and tracepoints are available:
 
 ```
-$ colcon build --cmake-args " -DTRACETOOLS_DISABLED=ON"
+$ source /opt/ros/rolling/setup.bash  # With a binary install
+$ source ./install/setup.bash  # When building from source
+$ ros2 run tracetools status
+Tracing enabled
+```
+
+A ROS 2 installation only includes the LTTng userspace tracer (LTTng-UST), which is all that is needed to trace ROS 2.
+To trace the Linux kernel, the [LTTng kernel tracer](https://lttng.org/docs/v2.13/#doc-tracing-the-linux-kernel) must be installed separately:
+
+```
+$ sudo apt-get update
+$ sudo apt-get install lttng-modules-dkms
+```
+
+For more information about LTTng, [refer to its documentation](https://lttng.org/docs/v2.13/).
+
+### Removing the instrumentation
+
+To build and remove all instrumentation, use `TRACETOOLS_DISABLED`:
+
+```
+$ colcon build --cmake-args -DTRACETOOLS_DISABLED=ON
 ```
 
 This will remove all instrumentation from the core ROS 2 packages, and thus they will not depend on or link against the shared library provided by the [`tracetools` package](#tracetools).
+This also means that LTTng is not required at build-time or at runtime.
+
+### Excluding tracepoints
+
+Alternatively, to only exclude the actual tracepoints, use `TRACETOOLS_TRACEPOINTS_EXCLUDED`:
+
+```
+$ colcon build --packages-select tracetools --cmake-clean-cache --cmake-args -DTRACETOOLS_TRACEPOINTS_EXCLUDED=ON
+```
+
+This will keep the instrumentation but remove all tracepoints.
+This also means that LTTng is not required at build-time or at runtime.
+This option can be useful, since tracepoints can be added back in or removed by simply replacing/re-building the shared library provided by the [`tracetools` package](#tracetools).
 
 ## Tracing
 
-The steps above will not lead to trace data being generated, and thus they will have no impact on execution.
+By default, trace data will not be generated, and thus these packages will have virtually no impact on execution.
 LTTng has to be configured for tracing.
 The packages in this repo provide two options: a [command](#trace-command) and a [launch file action](#launch-file-trace-action).
+
+**Note**: tracing must be started before the application is launched.
+Metadata is recorded during the initialization phase of the application.
+This metadata is needed to understand the rest of the trace data, so if tracing is started after the application started executing, then the trace data might be unusable.
+For more information, refer to the [design document](./doc/design_ros_2.md#general-guidelines).
+The [launch file action](#launch-file-trace-action) is designed to automatically start tracing before the application launches.
 
 The tracing directory can be configured using command/launch action parameters, or through environment variables with the following logic:
 
@@ -124,12 +129,12 @@ The first option is to use the `ros2 trace` command.
 $ ros2 trace
 ```
 
-By default, it will enable all ROS tracepoints and a few kernel tracepoints.
+By default, it will enable all ROS 2 tracepoints.
 The trace will be written to `~/.ros/tracing/session-YYYYMMDDHHMMSS`.
 Run the command with `-h` for more information.
 
 You must [install the kernel tracer](#building) if you want to enable kernel events (using the `-k`/`--kernel-events` option).
-If have installed the kernel tracer, use kernel tracing, and still encounter an error here, make sure to [add your user to the `tracing` group](#tracing).
+If you have installed the kernel tracer, use kernel tracing, and still encounter an error here, make sure to [add your user to the `tracing` group](#tracing).
 
 ### Launch file trace action
 
@@ -144,7 +149,7 @@ The `Trace` action will also set the `LD_PRELOAD` environment to preload [LTTng'
 For more information, see [this example launch file](./tracetools_launch/launch/example.launch.py) and the [`Trace` action](./tracetools_launch/tracetools_launch/action.py).
 
 You must [install the kernel tracer](#building) if you want to enable kernel events (`events_kernel` in Python, `events-kernel` in XML or YAML).
-If have installed the kernel tracer, use kernel tracing, and still encounter an error here, make sure to [add your user to the `tracing` group](#tracing).
+If you have installed the kernel tracer, use kernel tracing, and still encounter an error here, make sure to [add your user to the `tracing` group](#tracing).
 
 ## Design
 
@@ -170,7 +175,7 @@ However, some settings need to be tuned for it to be fully real-time safe and fo
     * usually done the first time a tracepoint is executed within a thread for URCU thread registration, but registration can be manually performed to force it to be done during your application's initialization
     * see [this LTTng mailing list message](https://lists.lttng.org/pipermail/lttng-dev/2019-November/029409.html)
 
-[^rt-1]: this setting cannot currently be set through the [`Trace` launch file action](#launch-file-trace-action) or the [`ros2 trace` command](#trace-command), see [!129](https://gitlab.com/ros-tracing/ros2_tracing/-/issues/129)
+[^rt-1]: this setting cannot currently be set through the [`Trace` launch file action](#launch-file-trace-action) or the [`ros2 trace` command](#trace-command), see [#20](https://github.com/ros2/ros2_tracing/issues/20)
 
 For further reading:
 
@@ -192,7 +197,7 @@ Library to support instrumenting ROS packages, including core packages.
 
 This package claims to be in the **Quality Level 1** category, see the [Quality Declaration](./tracetools/QUALITY_DECLARATION.md) for more details.
 
-See the [API documentation](https://ros-tracing.gitlab.io/ros2_tracing-api/).
+See the [API documentation](https://docs.ros.org/en/rolling/p/tracetools/).
 
 ### tracetools_launch
 
@@ -214,6 +219,10 @@ Package containing tools to enable tracing.
 
 Package containing unit and system tests for `tracetools`.
 
+### test_tracetools_launch
+
+Package containing system tests for `tracetools_launch`.
+
 ## Analysis
 
-See [`tracetools_analysis`](https://gitlab.com/ros-tracing/tracetools_analysis).
+See [`tracetools_analysis`](https://github.com/ros-tracing/tracetools_analysis).

@@ -15,7 +15,6 @@
 
 """Implementation of the interface for tracing with LTTng."""
 
-from distutils.version import StrictVersion
 import os
 import re
 import subprocess
@@ -25,25 +24,25 @@ from typing import Optional
 from typing import Set
 from typing import Tuple
 from typing import Union
-import warnings
 
 import lttng
+from packaging.version import Version
 
 from .names import CONTEXT_TYPE_CONSTANTS_MAP
 from .names import DEFAULT_CONTEXT
 from .names import DEFAULT_EVENTS_ROS
 
 
-def get_version() -> Optional[StrictVersion]:
+def get_version() -> Optional[Version]:
     """
     Get the version of the lttng module.
 
     The module does not have a __version__ attribute, but the version is mentioned in its __doc__,
     and seems to be written in a consistent way across versions.
 
-    :return: the version as a StrictVersion object, or `None` if it cannot be extracted
+    :return: the version as a Version object, or `None` if it cannot be extracted
     """
-    doc_lines = lttng.__doc__.split('\n')
+    doc_lines = str(lttng.__doc__).split('\n')
     filtered_doc_lines: List[str] = list(filter(None, doc_lines))
     if len(filtered_doc_lines) == 0:
         return None
@@ -51,7 +50,7 @@ def get_version() -> Optional[StrictVersion]:
     version_string = first_line.split(' ')[1]
     if not re.compile(r'^[0-9]+\.[0-9]+\.[0-9]+$').match(version_string):
         return None
-    return StrictVersion(version_string)
+    return Version(version_string)
 
 
 def is_kernel_tracer_available() -> Tuple[bool, Optional[str]]:
@@ -72,7 +71,6 @@ def setup(
     ros_events: Union[List[str], Set[str]] = DEFAULT_EVENTS_ROS,
     kernel_events: Union[List[str], Set[str]] = [],
     context_fields: Union[List[str], Set[str], Dict[str, List[str]]] = DEFAULT_CONTEXT,
-    context_names: Optional[Union[List[str], Set[str], Dict[str, List[str]]]] = None,
     channel_name_ust: str = 'ros2',
     channel_name_kernel: str = 'kchan',
 ) -> Optional[str]:
@@ -91,17 +89,10 @@ def setup(
     :param context_fields: the names of context fields to enable
         if it's a list or a set, the context fields are enabled for both kernel and userspace;
         if it's a dictionary: { domain type string -> context fields list }
-    :param context_names: DEPRECATED, use context_fields instead
     :param channel_name_ust: the UST channel name
     :param channel_name_kernel: the kernel channel name
     :return: the full path to the trace directory, or `None` if initialization failed
     """
-    # Use value from deprecated param if it is provided
-    # TODO(christophebedard) remove context_names param in Rolling after Humble release
-    if context_names is not None:
-        context_fields = context_names
-        warnings.warn('context_names parameter is deprecated, use context_fields', stacklevel=4)
-
     # Check if there is a session daemon running
     if lttng.session_daemon_alive() == 0:
         # Otherwise spawn one and check if it worked
